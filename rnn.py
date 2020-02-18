@@ -1,10 +1,16 @@
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers.core import Dense, Activation
-from tensorflow.layers.recurrent import LSTM
+from tensorflow.python.keras.models import Sequential
+from tensorflow.python.keras.layers.core import Dense, Activation
+from tensorflow.python.keras.layers.recurrent import LSTM
+from tensorflow.python.keras.callbacks import EarlyStopping
 
-import matplotli.pyplot as plt
+import matplotlib.pyplot as plt
 
 from make_noised_sin import make_noised_sin
+
+import pandas as pd
+import numpy as np
+import math
+import random
 
 io = 1
 hidden = 300
@@ -38,18 +44,38 @@ def main():
     (x_train, y_train), (x_test, y_test) = train_test_split(sin, n_prev = size)
 
     model = Sequential([
-        LSTM(hidden, batch_input_shape=(None, size, io), return_sequence=False),
+        LSTM(hidden, batch_input_shape=(None, size, io), return_sequences=False),
         Dense(io),
         Activation('linear')
     ])
 
     model.compile(loss='mean_squared_error', optimizer='adam')
-    model.fit(x_train, y_train, batch_size=16, nb_epoch=15, validation_split=0.05)
+    stopping = EarlyStopping(monitor='val_loss', mode='auto', patience=10)
+    model.fit(x_train, y_train, batch_size=256, nb_epoch=100, validation_split=0.1, callbacks=[stopping])
+
+    pred_out = model.predict(x_test)
+    predict = pred_out
+    output = []
+    future_data = x_test
+    future_steps = 400
+    for i in range(future_steps):
+      print(i)
+      future_data = np.delete(future_data, 0, 0)
+      future_data = np.append(future_data, predict[-size:]).reshape(300, 100, 1)
+
+      predict = model.predict(future_data)
+      output = np.append(output, predict[len(predict) - 1])
+
 
     plt.figure()
-    plt.plot(x_test, y_test, label='input')
-    plt.plot(predict[:200], y_test, label='predict')
-    plt.saveimg('result.png')
+    #plt.plot(y_test.flatten())
+    plt.plot(range(0, 300), y_test.flatten(), label='input')
+    plt.plot(range(0, 300), pred_out.flatten(), label='predict')
+    plt.plot(range(300, 300 + future_steps), output.flatten(), label='future')
+    plt.title('Sin Curve prediction')
+    plt.legend(loc='upper right')
+    plt.savefig('result.png')
+
 
 if __name__ == '__main__':
     main()
