@@ -3,6 +3,8 @@ from tensorflow.python.keras.layers.core import Dense, Activation
 from tensorflow.python.keras.layers.recurrent import LSTM
 from tensorflow.python.keras.callbacks import EarlyStopping
 
+from sklearn.preprocessing import StandardScaler
+
 import matplotlib.pyplot as plt
 
 import pandas as pd
@@ -14,7 +16,7 @@ io = 1
 hidden = 300
 sequence_size = 100
 
-def make_dataset(data):
+def load_data(data):
 
     x, y = [], []
     db = pd.DataFrame(data)
@@ -25,9 +27,16 @@ def make_dataset(data):
     return np.array(x), np.array(y)
 
 
+def make_dataset(test_size=0.1):
+  
+    scaler = MinMaxScaler()
+    db = pd.read_csv('./wave.csv')
+    db['ok'] = scaler.fit_transform(db['ok'])
+
+    pos = int(len(db) - sequence_size)
+
 def main():
 
-    wave = hoge()
     x_train, y_train = make_dataset(wave)
 
     model = Sequential([
